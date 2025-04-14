@@ -18,6 +18,18 @@ let cards = [];
 const DEBUG_SHOW_SPINNER = false;
 const LOADING_DELAY = 4000; // 2 seconds delay
 
+//handling card selection
+let firstSelectedCard = null;
+let secondSelectedCard = null;
+
+//Flag to prevent interaction while processing
+let isProcessingPair = false;
+
+// state tracking
+let matched = 0;
+const totalPairs = 6;
+
+
 /**
  * Initialize the application
  *
@@ -112,20 +124,51 @@ function createCardElement(index) {
 async function fetchAndAssignPokemon() {
   try {
     // Fetch multiple random Pokemon
-    const pokemonList = await PokemonService.fetchMultipleRandomPokemon(CARD_COUNT);
+    const pokemonList = await PokemonService.fetchMultipleRandomPokemon(CARD_COUNT / 2);
+
+    const copy = [...pokemonList];
+
+    const All = pokemonList.concat(copy);
+
+    const shuffledPairs = shuffleArray(All);
 
     // If debug flag is on, add artificial delay to show the spinner
     if (DEBUG_SHOW_SPINNER) {
       await new Promise(resolve => setTimeout(resolve, LOADING_DELAY));
     }
 
-    // Assign Pokemon to cards
-    for (let i = 0; i < CARD_COUNT; i++) {
-      assignPokemonToCard(cards[i], pokemonList[i]);
+    // Assign Shuffled Pokemon to the  cards
+    for (let i = 0; i < Math.min(CARD_COUNT, shuffledPairs.length); i++) {
+      assignPokemonToCard(cards[i], shuffledPairs[i]);
     }
   } catch (error) {
     console.error('Error fetching and assigning Pokemon:', error);
+    // eslint-disable-next-line no-undef
+    showErrormesxsage('Failed to load Pokemon. Please try refreshing the page.');
   }
+}
+
+/**
+ * Shuffles array using Fisher-Yates
+ * @param {Array} array - the array to shuffle
+ * @returns {Array} the shuffled array
+ */
+
+function shuffleArray(array) {
+  // Create a copy of the array
+  // eslint-disable-next-line no-undef
+  const arrayCopy = structuredClone(array);
+
+  // Fisher-Yates algorithm
+  for (let i = arrayCopy.length - 1; i > 0; i--) {
+    // Pick a random element from 0 to i
+    const j = Math.floor(Math.random() * (i + 1));
+
+    // Swap elements i and j
+    [arrayCopy[i], arrayCopy[j]] = [arrayCopy[j], arrayCopy[i]];
+  }
+
+  return arrayCopy;
 }
 
 /**
@@ -221,9 +264,85 @@ function handleCardClick(event) {
     return;
   }
 
+  //pair porcessing
+  if (card.classList.contains('flipped') || card.classList.contains('matched')) {
+    return; // Already flipped or matched
+  }
+
+  if (isProcessingPair) {
+    return;
+  }
+
   // Toggle card flip
-  card.classList.toggle('flipped');
+  card.classList.add('flipped');
+
+  //Selection track logic
+  if (!firstSelectedCard) {
+    //selecting the first
+    firstSelectedCard = card;
+  } else {
+    //selecting the second
+    secondSelectedCard = card;
+    isProcessingPair = true;
+
+    //setting values
+    const val1 = firstSelectedCard.dataset.pokemon;
+    const val2 = secondSelectedCard.dataset.pokemon;
+
+    if (val1 === val2) {
+      // match found
+      firstSelectedCard.classList.add('matched');
+      secondSelectedCard.classList.add('matched');
+      // increment matched pairs
+      matched += 1;
+      //check pairs completed
+      checkGameCompletion();
+      //reset selection
+      resetSelection();
+    } else {
+      //no match, timeout 1s
+      setTimeout(() => {
+        firstSelectedCard.classList.remove('flipped');
+        secondSelectedCard.classList.remove('flipped');
+        resetSelection();
+      }, 1000);
+    }
+  }
 }
+
+function resetSelection() {
+  firstSelectedCard = null;
+  secondSelectedCard = null;
+  isProcessingPair = false;
+}
+
+function checkGameCompletion() {
+  if (matched === totalPairs) {
+    showGameComplete();
+  }
+}
+
+function showGameComplete() {
+  const messageContainer = document.createElement('div');
+  messageContainer.classList.add('completion-message');
+
+  messageContainer.innerHTML = `
+  <h1>Congratulations Player</h1>
+  <p> You found all Pokemon Pairs </p>
+  <button id="play-again">Play Again </button>
+  `;
+
+  document.querySelector('.container').appendChild(messageContainer);
+
+  //reset game
+  document.getElementById('play-again').addEventListener('click', () => {
+    messageContainer.remove();
+    matched = 0;
+    initApp(); //important to reset game.
+  });
+}
+
+
 
 /**
  * Set up event listeners

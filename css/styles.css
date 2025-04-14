@@ -412,6 +412,30 @@ footer .fa-heart {
     opacity: 0.8;
 }
 
+.completion-message {
+  justify-self: center;
+  background-color: rgba(147, 147, 147, 0.95);
+  justify-items: center;
+  width: 100%;
+  position: relative;
+  z-index: 2;
+  margin-top: -67.4em;
+  padding: 3em;
+  border-radius: 10px;
+}
+
+#play-again {
+  border-radius: 10px;
+  margin-top: 1em;
+  padding: 1.5em;
+  border: 2px solid var(--primary);
+  transition: 0.3s;
+}
+
+#play-again:hover {
+  border: 3px solif var(--secondary);
+} 
+
 /* Responsive Styles */
 @media (max-width: 768px) {
     body {
